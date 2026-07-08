@@ -2,6 +2,7 @@ import { appConfig } from "./config/app.config.js";
 
 import { readSitesFromCsv } from "./infrastructure/csv/site-csv-reader.js";
 import { writeScanResultsToCsv } from "./infrastructure/csv/scan-result-csv-writer.js";
+import { writeHtmlReport } from "./infrastructure/report/html-report-writer.js";
 
 import { BrowserService } from "./infrastructure/browser/browser.service.js";
 import { ScannerService } from "./core/scanner/scanner.service.js";
@@ -71,23 +72,19 @@ async function main(): Promise<void> {
   }
 
   await writeScanResultsToCsv(appConfig.outputCsvPath, results);
+  await writeHtmlReport(appConfig.reportPath, results);
 
-  const failedCount = results.filter(
-    (result) => result.error !== null
-  ).length;
-
+  const failedCount = results.filter((result) => result.error !== null).length;
   const successCount = results.length - failedCount;
 
-  const durationSeconds = (
-    (Date.now() - startedAt) /
-    1000
-  ).toFixed(1);
+  const durationSeconds = ((Date.now() - startedAt) / 1000).toFixed(1);
 
   console.log("\nScan finished");
   console.log(`Success: ${successCount}`);
   console.log(`Failed: ${failedCount}`);
   console.log(`Duration: ${durationSeconds}s`);
   console.log(`Results saved to ${appConfig.outputCsvPath}`);
+  console.log(`HTML report saved to ${appConfig.reportPath}`);
 }
 
 main();
