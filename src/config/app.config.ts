@@ -10,6 +10,7 @@ export const appConfig = {
 
   browser: {
     navigationTimeoutMs: 20000,
+    overflowThresholdPx: 10,
 
     viewports: {
       desktop: {

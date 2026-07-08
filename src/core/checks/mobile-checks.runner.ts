@@ -1,5 +1,6 @@
 import type { Page } from "playwright";
 
+import { appConfig } from "../../config/app.config.js";
 import { checkMobileWidth } from "./mobile-width.check.js";
 
 export type MobileChecksResult = {
@@ -15,7 +16,8 @@ export async function runMobileChecks(
     await checkMobileWidth(page);
 
   const hasHorizontalScrollMobile =
-    mobileContentWidth > mobileViewportWidth;
+    mobileContentWidth >
+    mobileViewportWidth + appConfig.browser.overflowThresholdPx;
 
   return {
     hasHorizontalScrollMobile,
