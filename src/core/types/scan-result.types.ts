@@ -9,6 +9,7 @@ export type ScanResult = {
   hasFavicon: boolean;
   hasViewport: boolean;
   hasPdfLinks: boolean;
+  pdfLinksCount: number;
   pdfLinks: string[];
   brokenImagesCount: number;
   brokenImages: string[];

@@ -8,5 +8,5 @@ export async function checkPdfLinks(page: Page): Promise<string[]> {
       .filter((href) => href.toLowerCase().includes(".pdf"))
   );
 
-  return links;
+  return Array.from(new Set(links));
 }

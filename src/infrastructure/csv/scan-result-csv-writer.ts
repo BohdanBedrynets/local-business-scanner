@@ -17,6 +17,7 @@ export async function writeScanResultsToCsv(
     hasFavicon: result.hasFavicon,
     hasViewport: result.hasViewport,
     hasPdfLinks: result.hasPdfLinks,
+    pdfLinksCount: result.pdfLinksCount,
     pdfLinks: result.pdfLinks.join(" | "),
     brokenImagesCount: result.brokenImagesCount,
     brokenImages: result.brokenImages.join(" | "),

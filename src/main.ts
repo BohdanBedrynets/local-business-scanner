@@ -47,6 +47,7 @@ async function main(): Promise<void> {
           hasFavicon: false,
           hasViewport: false,
           hasPdfLinks: false,
+          pdfLinksCount: 0,
           pdfLinks: [],
           brokenImagesCount: 0,
           brokenImages: [],

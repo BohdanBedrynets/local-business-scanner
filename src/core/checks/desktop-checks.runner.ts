@@ -17,6 +17,7 @@ export type DesktopChecksResult = {
   brokenImagesCount: number;
   brokenImages: string[];
   hasHorizontalScrollDesktop: boolean;
+  pdfLinksCount: number;
 };
 
 export async function runDesktopChecks(
@@ -30,7 +31,8 @@ export async function runDesktopChecks(
   const hasViewport = await checkViewport(page);
 
   const pdfLinks = await checkPdfLinks(page);
-  const hasPdfLinks = pdfLinks.length > 0;
+  const pdfLinksCount = pdfLinks.length;
+  const hasPdfLinks = pdfLinksCount > 0;
 
   const { brokenImagesCount, brokenImages } =
     await checkBrokenImages(page);
@@ -48,5 +50,6 @@ export async function runDesktopChecks(
     brokenImagesCount,
     brokenImages,
     hasHorizontalScrollDesktop,
+    pdfLinksCount,
   };
 }
