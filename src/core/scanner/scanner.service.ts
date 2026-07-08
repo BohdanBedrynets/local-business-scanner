@@ -47,13 +47,13 @@ export class ScannerService {
     site: Site,
     screenshotName: string
   ): Promise<DesktopScanResult> {
-    const { page, response } = await this.browserService.openPage(
+        const { page, response, loadTimeMs } = await this.browserService.openPage(
       site.url,
       "desktop"
     );
 
     try {
-      const checksResult = await runDesktopChecks(page, response);
+        const checksResult = await runDesktopChecks(page, response, loadTimeMs);
 
       const desktopScreenshotPath =
         `${appConfig.screenshots.desktopDir}/${screenshotName}.png`;

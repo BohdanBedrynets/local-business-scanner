@@ -1,4 +1,4 @@
-name,url,title,hasHttps,responseStatus,hasFavicon,hasViewport,hasPdfLinks,pdfLinks,hasHorizontalScrollDesktop,hasHorizontalScrollMobile,mobileViewportWidth,mobileContentWidth,desktopScreenshotPath,mobileScreenshotPath,error
-Example,https://example.com,Example Domain,1,200,1,1,,,,,390,390,data/screenshots/desktop/example.png,data/screenshots/mobile/example.png,
-Google,https://google.com,Google,1,200,1,,,,,1,390,980,data/screenshots/desktop/google.png,data/screenshots/mobile/google.png,
-Some Business,https://www.peissnitzhaus.de,Peißnitzhaus,1,200,1,1,,,,,390,390,data/screenshots/desktop/some-business.png,data/screenshots/mobile/some-business.png,
+name,url,title,hasHttps,responseStatus,loadTimeMs,loadTimeSeconds,hasFavicon,hasViewport,hasPdfLinks,pdfLinks,brokenImagesCount,brokenImages,hasHorizontalScrollDesktop,hasHorizontalScrollMobile,mobileViewportWidth,mobileContentWidth,desktopScreenshotPath,mobileScreenshotPath,error
+Example,https://example.com,Example Domain,1,200,345,0.34,1,1,,,0,,,,390,390,data/screenshots/desktop/example.png,data/screenshots/mobile/example.png,
+Google,https://google.com,Google,1,200,1163,1.16,1,,,,0,,,1,390,980,data/screenshots/desktop/google.png,data/screenshots/mobile/google.png,
+Some Business,https://www.peissnitzhaus.de,Peißnitzhaus,1,200,1284,1.28,1,1,,,2,/images/slider/cache/529bbb19b95bb69daf8b76a6efbd90a0/PXL_20210416_1618561763.jpg | /images/slider/cache/8be145c45a4e8b1a5301afb055019f58/PXL_20201219_133639921.jpg,,,390,390,data/screenshots/desktop/some-business.png,data/screenshots/mobile/some-business.png,

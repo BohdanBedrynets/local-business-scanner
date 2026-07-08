@@ -6,6 +6,7 @@ export type DeviceType = "desktop" | "mobile";
 export type OpenPageResult = {
   page: Page;
   response: Response | null;
+  loadTimeMs: number;
 };
 
 const VIEWPORTS = appConfig.browser.viewports;
@@ -32,14 +33,19 @@ export class BrowserService {
       isMobile: device === "mobile",
     });
 
+    const startedAt = Date.now();
+
     const response = await page.goto(url, {
       waitUntil: "domcontentloaded",
       timeout: appConfig.browser.navigationTimeoutMs,
     });
 
+    const loadTimeMs = Date.now() - startedAt;
+
     return {
       page,
       response,
+      loadTimeMs,
     };
   }
 

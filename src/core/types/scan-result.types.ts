@@ -5,10 +5,13 @@ export type ScanResult = {
   hasHttps: boolean;
   title: string;
   responseStatus: number | null;
+  loadTimeMs: number;
   hasFavicon: boolean;
   hasViewport: boolean;
   hasPdfLinks: boolean;
   pdfLinks: string[];
+  brokenImagesCount: number;
+  brokenImages: string[];
   hasHorizontalScrollDesktop: boolean;
   hasHorizontalScrollMobile: boolean;
   mobileViewportWidth: number;
