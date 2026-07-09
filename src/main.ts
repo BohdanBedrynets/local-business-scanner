@@ -77,6 +77,8 @@ async function main(): Promise<void> {
         robotsTxtStatus: null,
         hasSitemap: false,
         sitemapStatus: null,
+        imagesCount: 0,
+        imagesWithoutAltCount: 0,
         };
 
         results.push(failedResult);

@@ -26,6 +26,8 @@ export async function writeScanResultsToCsv(
     hasPdfLinks: result.hasPdfLinks,
     pdfLinksCount: result.pdfLinksCount,
     brokenImagesCount: result.brokenImagesCount,
+    imagesCount: result.imagesCount,
+    imagesWithoutAltCount: result.imagesWithoutAltCount,
     brokenLinksCount: result.brokenLinksCount,
     hasHorizontalScrollDesktop: result.hasHorizontalScrollDesktop,
     hasHorizontalScrollMobile: result.hasHorizontalScrollMobile,

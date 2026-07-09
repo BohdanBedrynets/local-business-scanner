@@ -13,6 +13,7 @@ import { checkTitleQuality } from "./title-quality.check.js";
 import { checkContactInfo } from "./contact-info.check.js";
 import { checkRobotsTxt } from "./robots-txt.check.js";
 import { checkSitemap } from "./sitemap.check.js";
+import { checkImageAlt } from "./image-alt.check.js";
 
 export type DesktopChecksResult = {
   title: string;
@@ -42,6 +43,8 @@ export type DesktopChecksResult = {
   robotsTxtStatus: number | null;
   hasSitemap: boolean;
   sitemapStatus: number | null;
+  imagesCount: number;
+  imagesWithoutAltCount: number;
 };
 
 export async function runDesktopChecks(
@@ -74,6 +77,8 @@ export async function runDesktopChecks(
 
   const { brokenImagesCount, brokenImages } =
     await checkBrokenImages(page);
+
+  const { imagesCount, imagesWithoutAltCount } = await checkImageAlt(page);
 
   const { brokenLinksCount, brokenLinks } =
     await checkBrokenLinks(page, siteUrl);
@@ -115,5 +120,7 @@ export async function runDesktopChecks(
     robotsTxtStatus,
     hasSitemap,
     sitemapStatus,
+    imagesCount,
+    imagesWithoutAltCount,
   };
 }

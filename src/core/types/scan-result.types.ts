@@ -42,6 +42,8 @@ export type ScanResult = {
   robotsTxtStatus: number | null;
   hasSitemap: boolean;
   sitemapStatus: number | null;
+  imagesCount: number;
+  imagesWithoutAltCount: number;
 };
 
 export type TitleQuality = "missing" | "poor" | "ok";
