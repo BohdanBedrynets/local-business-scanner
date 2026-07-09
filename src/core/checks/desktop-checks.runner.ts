@@ -8,6 +8,7 @@ import { checkPdfLinks } from "./pdf-links.check.js";
 import { checkHorizontalScroll } from "./horizontal-scroll.check.js";
 import { checkBrokenImages } from "./broken-images.check.js";
 import { checkBrokenLinks } from "./broken-links.check.js";
+import { checkMetaDescription } from "./meta-description.check.js";
 
 export type DesktopChecksResult = {
   title: string;
@@ -23,6 +24,8 @@ export type DesktopChecksResult = {
   brokenLinksCount: number;
   brokenLinks: BrokenLink[];
   hasHorizontalScrollDesktop: boolean;
+  hasMetaDescription: boolean;
+  metaDescriptionLength: number;
 };
 
 export async function runDesktopChecks(
@@ -35,6 +38,9 @@ export async function runDesktopChecks(
 
   const hasFavicon = await checkFavicon(page);
   const hasViewport = await checkViewport(page);
+
+  const { hasMetaDescription, metaDescriptionLength } =
+  await checkMetaDescription(page);
 
   const pdfLinks = await checkPdfLinks(page);
   const pdfLinksCount = pdfLinks.length;
@@ -62,5 +68,7 @@ export async function runDesktopChecks(
     brokenLinksCount,
     brokenLinks,
     hasHorizontalScrollDesktop,
+    hasMetaDescription,
+  metaDescriptionLength,
   };
 }

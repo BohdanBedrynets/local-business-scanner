@@ -13,6 +13,8 @@ export type ScanResult = {
   loadTimeMs: number;
   hasFavicon: boolean;
   hasViewport: boolean;
+  hasMetaDescription: boolean;
+  metaDescriptionLength: number;
   hasPdfLinks: boolean;
   pdfLinksCount: number;
   pdfLinks: string[];
