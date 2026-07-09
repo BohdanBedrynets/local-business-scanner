@@ -40,6 +40,8 @@ export type ScanResult = {
   socialLinks: string[];
   hasRobotsTxt: boolean;
   robotsTxtStatus: number | null;
+  hasSitemap: boolean;
+  sitemapStatus: number | null;
 };
 
 export type TitleQuality = "missing" | "poor" | "ok";

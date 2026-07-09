@@ -36,6 +36,8 @@ export async function writeScanResultsToCsv(
     error: result.error,
     hasRobotsTxt: result.hasRobotsTxt,
     robotsTxtStatus: result.robotsTxtStatus,
+    hasSitemap: result.hasSitemap,
+    sitemapStatus: result.sitemapStatus,
   }));
 
   const csv = stringify(records, {

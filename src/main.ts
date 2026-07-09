@@ -75,6 +75,8 @@ async function main(): Promise<void> {
         socialLinks: [],
         hasRobotsTxt: false,
         robotsTxtStatus: null,
+        hasSitemap: false,
+        sitemapStatus: null,
         };
 
         results.push(failedResult);
