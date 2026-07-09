@@ -11,6 +11,7 @@ import { checkBrokenLinks } from "./broken-links.check.js";
 import { checkMetaDescription } from "./meta-description.check.js";
 import { checkTitleQuality } from "./title-quality.check.js";
 import { checkContactInfo } from "./contact-info.check.js";
+import { checkRobotsTxt } from "./robots-txt.check.js";
 
 export type DesktopChecksResult = {
   title: string;
@@ -36,6 +37,8 @@ export type DesktopChecksResult = {
   emails: string[];
   phones: string[];
   socialLinks: string[];
+  hasRobotsTxt: boolean;
+  robotsTxtStatus: number | null;
 };
 
 export async function runDesktopChecks(
@@ -72,7 +75,11 @@ export async function runDesktopChecks(
   const { brokenLinksCount, brokenLinks } =
     await checkBrokenLinks(page, siteUrl);
 
+  const { hasRobotsTxt, robotsTxtStatus } =
+  await checkRobotsTxt(page, siteUrl);
+
   const hasHorizontalScrollDesktop = await checkHorizontalScroll(page);
+
 
   return {
     title,
@@ -98,5 +105,7 @@ export async function runDesktopChecks(
     emails,
     phones,
     socialLinks,
+    hasRobotsTxt,
+    robotsTxtStatus,
   };
 }

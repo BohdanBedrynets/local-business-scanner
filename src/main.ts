@@ -73,6 +73,8 @@ async function main(): Promise<void> {
         emails: [],
         phones: [],
         socialLinks: [],
+        hasRobotsTxt: false,
+        robotsTxtStatus: null,
         };
 
         results.push(failedResult);

@@ -38,6 +38,8 @@ export type ScanResult = {
   emails: string[];
   phones: string[];
   socialLinks: string[];
+  hasRobotsTxt: boolean;
+  robotsTxtStatus: number | null;
 };
 
 export type TitleQuality = "missing" | "poor" | "ok";
