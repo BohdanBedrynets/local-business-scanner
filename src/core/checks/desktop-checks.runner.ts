@@ -1,6 +1,6 @@
 import type { Page, Response } from "playwright";
 
-import type { BrokenLink } from "../types/scan-result.types.js";
+import type { BrokenLink, JavaScriptIssue } from "../types/scan-result.types.js";
 
 import { checkFavicon } from "./favicon.check.js";
 import { checkViewport } from "./viewport.check.js";
@@ -45,13 +45,16 @@ export type DesktopChecksResult = {
   sitemapStatus: number | null;
   imagesCount: number;
   imagesWithoutAltCount: number;
+  javaScriptIssuesCount: number;
+  javaScriptIssues: JavaScriptIssue[];
 };
 
 export async function runDesktopChecks(
   page: Page,
   response: Response | null,
   loadTimeMs: number,
-  siteUrl: string
+  siteUrl: string,
+  javaScriptIssues: JavaScriptIssue[]
 ): Promise<DesktopChecksResult> {
   const title = await page.title();
   const { titleLength, titleQuality } = checkTitleQuality(title);
@@ -122,5 +125,7 @@ export async function runDesktopChecks(
     sitemapStatus,
     imagesCount,
     imagesWithoutAltCount,
+    javaScriptIssuesCount: javaScriptIssues.length,
+    javaScriptIssues,
   };
 }

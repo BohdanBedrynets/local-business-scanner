@@ -44,6 +44,13 @@ export type ScanResult = {
   sitemapStatus: number | null;
   imagesCount: number;
   imagesWithoutAltCount: number;
+  javaScriptIssuesCount: number;
+  javaScriptIssues: JavaScriptIssue[];
 };
 
 export type TitleQuality = "missing" | "poor" | "ok";
+
+export type JavaScriptIssue = {
+  type: "console-error" | "page-error";
+  message: string;
+};

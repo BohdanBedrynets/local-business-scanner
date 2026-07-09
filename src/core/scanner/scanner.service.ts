@@ -47,7 +47,8 @@ export class ScannerService {
     site: Site,
     screenshotName: string
   ): Promise<DesktopScanResult> {
-        const { page, response, loadTimeMs } = await this.browserService.openPage(
+        const { page, response, loadTimeMs, javaScriptIssues } =
+        await this.browserService.openPage(
       site.url,
       "desktop"
     );
@@ -57,7 +58,8 @@ export class ScannerService {
   page,
   response,
   loadTimeMs,
-  site.url
+  site.url,
+  javaScriptIssues
 );
 
       const desktopScreenshotPath =

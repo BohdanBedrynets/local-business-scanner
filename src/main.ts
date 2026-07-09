@@ -79,6 +79,8 @@ async function main(): Promise<void> {
         sitemapStatus: null,
         imagesCount: 0,
         imagesWithoutAltCount: 0,
+        javaScriptIssuesCount: 0,
+        javaScriptIssues: [],
         };
 
         results.push(failedResult);

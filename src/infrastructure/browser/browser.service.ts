@@ -1,5 +1,6 @@
 import { chromium, type Browser, type Page, type Response } from "playwright";
 import { appConfig } from "../../config/app.config.js";
+import type { JavaScriptIssue } from "../../core/types/scan-result.types.js";
 
 export type DeviceType = "desktop" | "mobile";
 
@@ -7,6 +8,7 @@ export type OpenPageResult = {
   page: Page;
   response: Response | null;
   loadTimeMs: number;
+  javaScriptIssues: JavaScriptIssue[];
 };
 
 const VIEWPORTS = appConfig.browser.viewports;
@@ -28,9 +30,27 @@ export class BrowserService {
       throw new Error("Browser is not started");
     }
 
+    const javaScriptIssues: JavaScriptIssue[] = [];
+
     const page = await this.browser.newPage({
       viewport: VIEWPORTS[device],
       isMobile: device === "mobile",
+    });
+
+    page.on("console", (message) => {
+      if (message.type() === "error") {
+        javaScriptIssues.push({
+          type: "console-error",
+          message: message.text(),
+        });
+      }
+    });
+
+    page.on("pageerror", (error) => {
+      javaScriptIssues.push({
+        type: "page-error",
+        message: error.message,
+      });
     });
 
     const startedAt = Date.now();
@@ -46,6 +66,7 @@ export class BrowserService {
       page,
       response,
       loadTimeMs,
+      javaScriptIssues,
     };
   }
 

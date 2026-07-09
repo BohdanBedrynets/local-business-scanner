@@ -29,6 +29,7 @@ export async function writeScanResultsToCsv(
     imagesCount: result.imagesCount,
     imagesWithoutAltCount: result.imagesWithoutAltCount,
     brokenLinksCount: result.brokenLinksCount,
+    javaScriptIssuesCount: result.javaScriptIssuesCount,
     hasHorizontalScrollDesktop: result.hasHorizontalScrollDesktop,
     hasHorizontalScrollMobile: result.hasHorizontalScrollMobile,
     mobileViewportWidth: result.mobileViewportWidth,
