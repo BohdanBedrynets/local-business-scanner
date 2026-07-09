@@ -9,6 +9,7 @@ import { checkHorizontalScroll } from "./horizontal-scroll.check.js";
 import { checkBrokenImages } from "./broken-images.check.js";
 import { checkBrokenLinks } from "./broken-links.check.js";
 import { checkMetaDescription } from "./meta-description.check.js";
+import { checkTitleQuality } from "./title-quality.check.js";
 
 export type DesktopChecksResult = {
   title: string;
@@ -26,6 +27,8 @@ export type DesktopChecksResult = {
   hasHorizontalScrollDesktop: boolean;
   hasMetaDescription: boolean;
   metaDescriptionLength: number;
+  titleLength: number;
+  titleQuality: "missing" | "poor" | "ok";
 };
 
 export async function runDesktopChecks(
@@ -35,6 +38,7 @@ export async function runDesktopChecks(
   siteUrl: string
 ): Promise<DesktopChecksResult> {
   const title = await page.title();
+  const { titleLength, titleQuality } = checkTitleQuality(title);
 
   const hasFavicon = await checkFavicon(page);
   const hasViewport = await checkViewport(page);
@@ -69,6 +73,8 @@ export async function runDesktopChecks(
     brokenLinks,
     hasHorizontalScrollDesktop,
     hasMetaDescription,
-  metaDescriptionLength,
+    metaDescriptionLength,
+    titleLength,
+    titleQuality,
   };
 }

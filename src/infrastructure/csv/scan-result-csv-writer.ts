@@ -10,6 +10,8 @@ export async function writeScanResultsToCsv(
     name: result.site.name,
     url: result.site.url,
     title: result.title,
+    titleLength: result.titleLength,
+    titleQuality: result.titleQuality,
     hasHttps: result.hasHttps,
     responseStatus: result.responseStatus,
     loadTimeMs: result.loadTimeMs,

@@ -41,6 +41,8 @@ async function main(): Promise<void> {
         const failedResult: ScanResult = {
           site,
           title: "",
+          titleLength: 0,
+          titleQuality: "missing",
           hasHttps: site.url.startsWith("https://"),
           responseStatus: null,
           loadTimeMs: 0,

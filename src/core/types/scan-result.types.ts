@@ -1,5 +1,6 @@
 import type { Site } from "./site.types.js";
 
+
 export type BrokenLink = {
   url: string;
   status: number | null;
@@ -9,6 +10,8 @@ export type ScanResult = {
   site: Site;
   hasHttps: boolean;
   title: string;
+  titleLength: number;
+  titleQuality: TitleQuality;
   responseStatus: number | null;
   loadTimeMs: number;
   hasFavicon: boolean;
@@ -30,3 +33,5 @@ export type ScanResult = {
   mobileScreenshotPath: string;
   error: string | null;
 };
+
+export type TitleQuality = "missing" | "poor" | "ok";
