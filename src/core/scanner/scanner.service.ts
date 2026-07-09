@@ -53,7 +53,12 @@ export class ScannerService {
     );
 
     try {
-        const checksResult = await runDesktopChecks(page, response, loadTimeMs);
+        const checksResult = await runDesktopChecks(
+  page,
+  response,
+  loadTimeMs,
+  site.url
+);
 
       const desktopScreenshotPath =
         `${appConfig.screenshots.desktopDir}/${screenshotName}.png`;

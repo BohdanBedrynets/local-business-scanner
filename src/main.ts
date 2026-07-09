@@ -51,6 +51,8 @@ async function main(): Promise<void> {
           pdfLinks: [],
           brokenImagesCount: 0,
           brokenImages: [],
+          brokenLinksCount: 0,
+          brokenLinks: [],
           hasHorizontalScrollDesktop: false,
           hasHorizontalScrollMobile: false,
           mobileViewportWidth: 0,
