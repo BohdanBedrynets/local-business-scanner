@@ -23,4 +23,11 @@ export const appConfig = {
       },
     },
   },
+
+  checks: {
+    brokenLinks: {
+      maxLinksPerSite: 30,
+      timeoutMs: 5000,
+    },
+  },
 } as const;

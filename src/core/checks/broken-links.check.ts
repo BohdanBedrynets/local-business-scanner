@@ -1,4 +1,5 @@
 import type { Page } from "playwright";
+import { appConfig } from "../../config/app.config.js";
 
 export type BrokenLink = {
   url: string;
@@ -20,31 +21,40 @@ export async function checkBrokenLinks(
       .filter((href): href is string => Boolean(href))
   );
 
-  const internalLinks = normalizeInternalLinks(links, baseUrl);
+  const internalLinks = normalizeInternalLinks(links, baseUrl).slice(
+    0,
+    appConfig.checks.brokenLinks.maxLinksPerSite
+  );
 
-  const brokenLinks: BrokenLink[] = [];
-
-  for (const link of internalLinks) {
-    try {
-      const response = await page.request.get(link, {
-        timeout: 10000,
-      });
-
-      const status = response.status();
-
-      if (status >= 400) {
-        brokenLinks.push({
-          url: link,
-          status,
+  const results = await Promise.all(
+    internalLinks.map(async (link): Promise<BrokenLink | null> => {
+      try {
+        const response = await page.request.get(link, {
+          timeout: appConfig.checks.brokenLinks.timeoutMs,
         });
+
+        const status = response.status();
+
+        if (status >= 400) {
+          return {
+            url: link,
+            status,
+          };
+        }
+
+        return null;
+      } catch {
+        return {
+          url: link,
+          status: null,
+        };
       }
-    } catch {
-      brokenLinks.push({
-        url: link,
-        status: null,
-      });
-    }
-  }
+    })
+  );
+
+  const brokenLinks = results.filter(
+    (result): result is BrokenLink => result !== null
+  );
 
   return {
     brokenLinksCount: brokenLinks.length,
@@ -73,7 +83,19 @@ function normalizeInternalLinks(links: string[], baseUrl: string): string[] {
         continue;
       }
 
+      if (url.pathname.toLowerCase().endsWith(".pdf")) {
+        continue;
+      }
+
+      if (
+        url.pathname.includes("wp-login") ||
+        url.pathname.includes("wp-admin")
+      ) {
+        continue;
+      }
+
       url.hash = "";
+      url.search = "";
 
       normalizedLinks.push(url.toString());
     } catch {
