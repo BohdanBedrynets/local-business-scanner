@@ -67,6 +67,12 @@ async function main(): Promise<void> {
             error instanceof Error
               ? error.message.split("\n")[0]
               : "Unknown error",
+        emailsCount: 0,
+        phonesCount: 0,
+        socialLinksCount: 0,
+        emails: [],
+        phones: [],
+        socialLinks: [],
         };
 
         results.push(failedResult);

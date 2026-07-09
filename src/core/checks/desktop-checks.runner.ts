@@ -10,6 +10,7 @@ import { checkBrokenImages } from "./broken-images.check.js";
 import { checkBrokenLinks } from "./broken-links.check.js";
 import { checkMetaDescription } from "./meta-description.check.js";
 import { checkTitleQuality } from "./title-quality.check.js";
+import { checkContactInfo } from "./contact-info.check.js";
 
 export type DesktopChecksResult = {
   title: string;
@@ -29,6 +30,12 @@ export type DesktopChecksResult = {
   metaDescriptionLength: number;
   titleLength: number;
   titleQuality: "missing" | "poor" | "ok";
+  emailsCount: number;
+  phonesCount: number;
+  socialLinksCount: number;
+  emails: string[];
+  phones: string[];
+  socialLinks: string[];
 };
 
 export async function runDesktopChecks(
@@ -45,6 +52,15 @@ export async function runDesktopChecks(
 
   const { hasMetaDescription, metaDescriptionLength } =
   await checkMetaDescription(page);
+
+  const {
+  emailsCount,
+  phonesCount,
+  socialLinksCount,
+  emails,
+  phones,
+  socialLinks,
+} = await checkContactInfo(page);
 
   const pdfLinks = await checkPdfLinks(page);
   const pdfLinksCount = pdfLinks.length;
@@ -76,5 +92,11 @@ export async function runDesktopChecks(
     metaDescriptionLength,
     titleLength,
     titleQuality,
+    emailsCount,
+    phonesCount,
+    socialLinksCount,
+    emails,
+    phones,
+    socialLinks,
   };
 }

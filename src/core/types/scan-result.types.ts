@@ -32,6 +32,12 @@ export type ScanResult = {
   desktopScreenshotPath: string;
   mobileScreenshotPath: string;
   error: string | null;
+  emailsCount: number;
+  phonesCount: number;
+  socialLinksCount: number;
+  emails: string[];
+  phones: string[];
+  socialLinks: string[];
 };
 
 export type TitleQuality = "missing" | "poor" | "ok";
