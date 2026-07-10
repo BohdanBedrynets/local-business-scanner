@@ -6,8 +6,14 @@ export type BrokenLink = {
   status: number | null;
 };
 
+export type AuditPriority = "LOW" | "MEDIUM" | "HIGH";
+
 export type ScanResult = {
   site: Site;
+  technicalScore: number;
+  outreachScore: number;
+  priority: AuditPriority;
+  scoreReasons: string[];
   hasHttps: boolean;
   title: string;
   titleLength: number;

@@ -9,6 +9,10 @@ export async function writeScanResultsToCsv(
   const records = results.map((result) => ({
     name: result.site.name,
     url: result.site.url,
+    technicalScore: result.technicalScore,
+    outreachScore: result.outreachScore,
+    priority: result.priority,
+    scoreReasons: result.scoreReasons.join(" | "),
     title: result.title,
     titleLength: result.titleLength,
     titleQuality: result.titleQuality,

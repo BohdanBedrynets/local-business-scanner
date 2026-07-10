@@ -16,6 +16,7 @@ import {
 
 import { createSlug } from "../../utils/slug.utils.js";
 import { appConfig } from "../../config/app.config.js";
+import { calculateAuditScore } from "../audit/audit-score.service.js";
 
 type DesktopScanResult = DesktopChecksResult & {
   desktopScreenshotPath: string;
@@ -28,20 +29,27 @@ type MobileScanResult = MobileChecksResult & {
 export class ScannerService {
   constructor(private readonly browserService: BrowserService) {}
 
-  async scanSite(site: Site): Promise<ScanResult> {
-    const screenshotName = createSlug(site.name);
+async scanSite(site: Site): Promise<ScanResult> {
+  const screenshotName = createSlug(site.name);
 
-    const desktopResult = await this.scanDesktop(site, screenshotName);
-    const mobileResult = await this.scanMobile(site, screenshotName);
+  const desktopResult = await this.scanDesktop(site, screenshotName);
+  const mobileResult = await this.scanMobile(site, screenshotName);
 
-    return {
-      site,
-      hasHttps: checkHttps(site),
-      ...desktopResult,
-      ...mobileResult,
-      error: null,
-    };
-  }
+  const scanData = {
+    site,
+    hasHttps: checkHttps(site),
+    ...desktopResult,
+    ...mobileResult,
+    error: null,
+  };
+
+  const auditScore = calculateAuditScore(scanData);
+
+  return {
+    ...scanData,
+    ...auditScore,
+  };
+}
 
   private async scanDesktop(
     site: Site,

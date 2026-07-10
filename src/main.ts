@@ -40,6 +40,7 @@ async function main(): Promise<void> {
       } catch (error) {
         const failedResult: ScanResult = {
           site,
+          scoreReasons: [],
           title: "",
           titleLength: 0,
           titleQuality: "missing",
@@ -81,6 +82,9 @@ async function main(): Promise<void> {
         imagesWithoutAltCount: 0,
         javaScriptIssuesCount: 0,
         javaScriptIssues: [],
+        technicalScore: 0,
+        outreachScore: 0,
+        priority: "LOW",
         };
 
         results.push(failedResult);
