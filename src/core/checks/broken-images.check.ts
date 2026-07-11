@@ -5,34 +5,28 @@ export type BrokenImagesCheckResult = {
   brokenImages: string[];
 };
 
-type ImageDebugInfo = {
+type ImageInfo = {
   src: string;
-  complete: boolean;
-  naturalWidth: number;
-  naturalHeight: number;
-  clientWidth: number;
-  clientHeight: number;
-  loading: string;
-  visible: boolean;
-  broken: boolean;
+  isBroken: boolean;
 };
 
 export async function checkBrokenImages(
   page: Page
 ): Promise<BrokenImagesCheckResult> {
   /*
-   * Прокручуємо сторінку вниз, щоб lazy-loaded картинки
-   * отримали шанс реально завантажитися.
+   * Прокручуємо сторінку, щоб lazy-loaded зображення
+   * отримали можливість завантажитися.
    */
   await autoScrollPage(page);
 
   /*
-   * Даємо браузеру ще трохи часу після прокрутки.
+   * Невелика пауза після прокрутки для завершення
+   * завантаження зображень.
    */
   await page.waitForTimeout(1000);
 
   const imagesInfo = await page.locator("img").evaluateAll((images) => {
-    const result: ImageDebugInfo[] = [];
+    const result: ImageInfo[] = [];
 
     for (const image of images) {
       const img = image as HTMLImageElement;
@@ -47,6 +41,10 @@ export async function checkBrokenImages(
         continue;
       }
 
+      /*
+       * Ці джерела не варто рахувати як звичайні
+       * мережеві зображення.
+       */
       if (
         src.startsWith("data:") ||
         src.startsWith("blob:") ||
@@ -58,7 +56,7 @@ export async function checkBrokenImages(
       const styles = window.getComputedStyle(img);
       const rect = img.getBoundingClientRect();
 
-      const visible =
+      const isVisible =
         styles.display !== "none" &&
         styles.visibility !== "hidden" &&
         Number(styles.opacity) !== 0 &&
@@ -66,31 +64,18 @@ export async function checkBrokenImages(
         rect.height > 1;
 
       /*
-       * Важлива зміна:
-       *
-       * Раніше !img.complete також могло рахуватися проблемою.
-       * Але це часто означає лише те, що lazy-картинка ще вантажиться.
-       *
-       * Тепер картинка вважається битою лише коли:
-       * 1. браузер уже завершив її завантаження;
-       * 2. naturalWidth залишився 0;
-       * 3. картинка реально видима на сторінці.
+       * Зображення вважається підтверджено битим лише тоді,
+       * коли браузер завершив завантаження, але naturalWidth
+       * залишився нульовим, і саме зображення видиме.
        */
-      const broken =
-        visible &&
+      const isBroken =
+        isVisible &&
         img.complete &&
         img.naturalWidth === 0;
 
       result.push({
         src,
-        complete: img.complete,
-        naturalWidth: img.naturalWidth,
-        naturalHeight: img.naturalHeight,
-        clientWidth: img.clientWidth,
-        clientHeight: img.clientHeight,
-        loading: img.loading || "",
-        visible,
-        broken,
+        isBroken,
       });
     }
 
@@ -99,11 +84,9 @@ export async function checkBrokenImages(
 
   const brokenImages = normalizeAndDeduplicateImages(
     imagesInfo
-      .filter((image) => image.broken)
+      .filter((image) => image.isBroken)
       .map((image) => image.src)
   );
-
-  printBrokenImagesDebug(page.url(), imagesInfo);
 
   return {
     brokenImagesCount: brokenImages.length,
@@ -118,14 +101,12 @@ async function autoScrollPage(page: Page): Promise<void> {
     const maxSteps = 30;
 
     for (let step = 0; step < maxSteps; step += 1) {
-      const currentBottom =
-        window.scrollY + window.innerHeight;
+      const currentBottom = window.scrollY + window.innerHeight;
 
-      const documentHeight =
-        Math.max(
-          document.body.scrollHeight,
-          document.documentElement.scrollHeight
-        );
+      const documentHeight = Math.max(
+        document.body.scrollHeight,
+        document.documentElement.scrollHeight
+      );
 
       if (currentBottom >= documentHeight) {
         break;
@@ -142,23 +123,19 @@ async function autoScrollPage(page: Page): Promise<void> {
   });
 }
 
-function normalizeAndDeduplicateImages(
-  sources: string[]
-): string[] {
+function normalizeAndDeduplicateImages(sources: string[]): string[] {
   const normalizedSources: string[] = [];
 
   for (const originalSrc of sources) {
     let normalizedSrc = originalSrc;
 
     /*
-     * Wix часто створює багато URL однієї картинки
-     * з різними розмірами.
+     * Wix створює різні URL для різних розмірів
+     * одного й того самого зображення.
      */
     if (originalSrc.includes("static.wixstatic.com/media/")) {
       const parts = originalSrc.split("/");
-      const mediaIndex = parts.findIndex(
-        (part) => part === "media"
-      );
+      const mediaIndex = parts.findIndex((part) => part === "media");
 
       if (mediaIndex !== -1 && parts[mediaIndex + 1]) {
         normalizedSrc = `wix:${parts[mediaIndex + 1]}`;
@@ -169,49 +146,4 @@ function normalizeAndDeduplicateImages(
   }
 
   return Array.from(new Set(normalizedSources));
-}
-
-function printBrokenImagesDebug(
-  pageUrl: string,
-  imagesInfo: ImageDebugInfo[]
-): void {
-  const brokenImages = imagesInfo.filter(
-    (image) => image.broken
-  );
-
-  const unfinishedImages = imagesInfo.filter(
-    (image) => !image.complete
-  );
-
-  const hiddenImagesWithNoNaturalWidth = imagesInfo.filter(
-    (image) =>
-      !image.visible &&
-      image.complete &&
-      image.naturalWidth === 0
-  );
-
-  console.log(`\n[Image debug] ${pageUrl}`);
-  console.log(`All checked images: ${imagesInfo.length}`);
-  console.log(`Visible broken images: ${brokenImages.length}`);
-  console.log(`Still loading images: ${unfinishedImages.length}`);
-  console.log(
-    `Hidden images with naturalWidth 0: ${hiddenImagesWithNoNaturalWidth.length}`
-  );
-
-  if (brokenImages.length > 0) {
-    console.log("Visible broken image details:");
-
-    console.table(
-      brokenImages.slice(0, 20).map((image) => ({
-        src: image.src.slice(0, 120),
-        complete: image.complete,
-        naturalWidth: image.naturalWidth,
-        naturalHeight: image.naturalHeight,
-        clientWidth: image.clientWidth,
-        clientHeight: image.clientHeight,
-        loading: image.loading,
-        visible: image.visible,
-      }))
-    );
-  }
 }
