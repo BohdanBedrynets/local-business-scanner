@@ -5,18 +5,24 @@ import { BrowserService } from "../../infrastructure/browser/browser.service.js"
 import { takeScreenshot } from "../../infrastructure/screenshots/screenshot.service.js";
 
 import { checkHttps } from "../checks/https.check.js";
+
 import {
   runDesktopChecks,
   type DesktopChecksResult,
 } from "../checks/desktop-checks.runner.js";
+
 import {
   runMobileChecks,
   type MobileChecksResult,
 } from "../checks/mobile-checks.runner.js";
 
+import { calculateAuditScore } from "../audit/audit-score.service.js";
+import {
+  calculateOutreachDecision,
+} from "../outreach/outreach-decision.service.js";
+
 import { createSlug } from "../../utils/slug.utils.js";
 import { appConfig } from "../../config/app.config.js";
-import { calculateAuditScore } from "../audit/audit-score.service.js";
 
 type DesktopScanResult = DesktopChecksResult & {
   desktopScreenshotPath: string;
@@ -27,53 +33,73 @@ type MobileScanResult = MobileChecksResult & {
 };
 
 export class ScannerService {
-  constructor(private readonly browserService: BrowserService) {}
+  constructor(
+    private readonly browserService: BrowserService
+  ) {}
 
-async scanSite(site: Site): Promise<ScanResult> {
-  const screenshotName = createSlug(site.name);
+  async scanSite(site: Site): Promise<ScanResult> {
+    const screenshotName = createSlug(site.name);
 
-  const desktopResult = await this.scanDesktop(site, screenshotName);
-  const mobileResult = await this.scanMobile(site, screenshotName);
+    const desktopResult = await this.scanDesktop(
+      site,
+      screenshotName
+    );
 
-  const scanData = {
-    site,
-    hasHttps: checkHttps(site),
-    ...desktopResult,
-    ...mobileResult,
-    error: null,
-  };
+    const mobileResult = await this.scanMobile(
+      site,
+      screenshotName
+    );
 
-  const auditScore = calculateAuditScore(scanData);
+    const scanData = {
+      site,
+      hasHttps: checkHttps(site),
+      ...desktopResult,
+      ...mobileResult,
+      error: null,
+    };
 
-  return {
-    ...scanData,
-    ...auditScore,
-  };
-}
+    const auditScore = calculateAuditScore(scanData);
+
+    const outreachDecision =
+      calculateOutreachDecision(scanData);
+
+    return {
+      ...scanData,
+      ...auditScore,
+      ...outreachDecision,
+    };
+  }
 
   private async scanDesktop(
     site: Site,
     screenshotName: string
   ): Promise<DesktopScanResult> {
-        const { page, response, loadTimeMs, javaScriptIssues } =
-        await this.browserService.openPage(
+    const {
+      page,
+      response,
+      loadTimeMs,
+      javaScriptIssues,
+    } = await this.browserService.openPage(
       site.url,
       "desktop"
     );
 
     try {
-        const checksResult = await runDesktopChecks(
-  page,
-  response,
-  loadTimeMs,
-  site.url,
-  javaScriptIssues
-);
+      const checksResult = await runDesktopChecks(
+        page,
+        response,
+        loadTimeMs,
+        site.url,
+        javaScriptIssues
+      );
 
       const desktopScreenshotPath =
         `${appConfig.screenshots.desktopDir}/${screenshotName}.png`;
 
-      await takeScreenshot(page, desktopScreenshotPath);
+      await takeScreenshot(
+        page,
+        desktopScreenshotPath
+      );
 
       return {
         ...checksResult,
@@ -88,15 +114,23 @@ async scanSite(site: Site): Promise<ScanResult> {
     site: Site,
     screenshotName: string
   ): Promise<MobileScanResult> {
-    const { page } = await this.browserService.openPage(site.url, "mobile");
+    const { page } =
+      await this.browserService.openPage(
+        site.url,
+        "mobile"
+      );
 
     try {
-      const checksResult = await runMobileChecks(page);
+      const checksResult =
+        await runMobileChecks(page);
 
       const mobileScreenshotPath =
         `${appConfig.screenshots.mobileDir}/${screenshotName}.png`;
 
-      await takeScreenshot(page, mobileScreenshotPath);
+      await takeScreenshot(
+        page,
+        mobileScreenshotPath
+      );
 
       return {
         ...checksResult,
