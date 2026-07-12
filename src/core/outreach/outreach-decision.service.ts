@@ -33,11 +33,12 @@ export function calculateOutreachDecision(
     result.mobileContentWidth - result.mobileViewportWidth
   );
 
-  const botProtectionDetected = isLikelyBotProtection(result);
+  const botProtectionDetected =
+    isLikelyBotProtection(result);
 
   /*
-   * Сильні сигнали, які вже підтверджувалися
-   * під час ручного тестування.
+   * Сильні сигнали.
+   * Вони достатньо надійні, щоб автоматично ставити CONTACT.
    */
 
   if (!result.hasViewport) {
@@ -51,10 +52,6 @@ export function calculateOutreachDecision(
     strongReasons.push(
       `Severe mobile horizontal overflow (${mobileOverflowPixels}px)`
     );
-  }
-
-  if (result.hasHorizontalScrollDesktop) {
-    strongReasons.push("Desktop horizontal overflow");
   }
 
   if (result.brokenLinksCount >= 2) {
@@ -71,14 +68,7 @@ export function calculateOutreachDecision(
 
   if (
     !botProtectionDetected &&
-    (
-      result.responseStatus === 404 ||
-      result.responseStatus === 410 ||
-      (
-        result.responseStatus !== null &&
-        result.responseStatus >= 500
-      )
-    )
+    isConfirmedMainPageFailure(result.responseStatus)
   ) {
     strongReasons.push(
       `Main page returned HTTP ${result.responseStatus}`
@@ -86,9 +76,13 @@ export function calculateOutreachDecision(
   }
 
   /*
-   * Слабші сигнали. Вони не повинні автоматично
-   * запускати розсилку, але сайт варто переглянути.
+   * Слабші сигнали.
+   * Вони потребують короткої ручної перевірки.
    */
+
+  if (result.hasHorizontalScrollDesktop) {
+    reviewReasons.push("Desktop horizontal overflow");
+  }
 
   if (
     result.hasHorizontalScrollMobile &&
@@ -109,12 +103,16 @@ export function calculateOutreachDecision(
     result.brokenImagesCount < 3
   ) {
     reviewReasons.push(
-      `${result.brokenImagesCount} potentially broken image(s)`
+      formatBrokenImagesReason(
+        result.brokenImagesCount
+      )
     );
   }
 
   if (!result.hasHttps) {
-    reviewReasons.push("Website does not use HTTPS");
+    reviewReasons.push(
+      "Website does not use HTTPS"
+    );
   }
 
   if (result.loadTimeMs > 5000) {
@@ -124,9 +122,9 @@ export function calculateOutreachDecision(
   }
 
   /*
-   * JavaScript issues поки шумні.
-   * Лише велика кількість переводить сайт у REVIEW,
-   * але ніколи сама не робить CONTACT.
+   * Після фільтрації JavaScript-помилки стали чистішими,
+   * але самі по собі все одно не є достатньою причиною
+   * для автоматичного CONTACT.
    */
   if (result.javaScriptIssuesCount >= 5) {
     reviewReasons.push(
@@ -157,10 +155,23 @@ export function calculateOutreachDecision(
   };
 }
 
-function isLikelyBotProtection(result: DecisionInput): boolean {
+function isConfirmedMainPageFailure(
+  status: number | null
+): boolean {
+  if (status === 404 || status === 410) {
+    return true;
+  }
+
+  return status !== null && status >= 500;
+}
+
+function isLikelyBotProtection(
+  result: DecisionInput
+): boolean {
   if (
     result.responseStatus !== 403 &&
-    result.responseStatus !== 429
+    result.responseStatus !== 429 &&
+    result.responseStatus !== 503
   ) {
     return false;
   }
@@ -171,10 +182,25 @@ function isLikelyBotProtection(result: DecisionInput): boolean {
     title.includes("cloudflare") ||
     title.includes("attention required") ||
     title.includes("access denied") ||
-    title.includes("just a moment")
+    title.includes("just a moment") ||
+    title.includes("temporarily unavailable") ||
+    title.includes("security service") ||
+    title.includes("access to this site has been limited")
   );
 }
 
-function formatSeconds(milliseconds: number): string {
+function formatBrokenImagesReason(
+  count: number
+): string {
+  if (count === 1) {
+    return "1 confirmed broken image";
+  }
+
+  return `${count} confirmed broken images`;
+}
+
+function formatSeconds(
+  milliseconds: number
+): string {
   return (milliseconds / 1000).toFixed(2);
 }
