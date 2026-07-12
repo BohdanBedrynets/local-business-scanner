@@ -1,92 +1,62 @@
-import type { Page } from "playwright";
+import type { APIResponse, Page } from "playwright";
 
 export type BrokenImagesCheckResult = {
   brokenImagesCount: number;
   brokenImages: string[];
 };
 
-type ImageInfo = {
+type ImageCandidate = {
   src: string;
-  isBroken: boolean;
 };
+
+type ImageCheckResult = {
+  src: string;
+  status: number | null;
+  isConfirmedBroken: boolean;
+};
+
+const CONFIRMED_BROKEN_STATUSES = new Set([
+  404,
+  410,
+]);
+
+const IMAGE_REQUEST_TIMEOUT_MS = 5000;
+const IMAGE_CHECK_CONCURRENCY = 3;
 
 export async function checkBrokenImages(
   page: Page
 ): Promise<BrokenImagesCheckResult> {
   /*
-   * Прокручуємо сторінку, щоб lazy-loaded зображення
-   * отримали можливість завантажитися.
+   * Прокручуємо сторінку, щоб lazy-loaded картинки
+   * отримали можливість реально завантажитися.
    */
   await autoScrollPage(page);
 
   /*
-   * Невелика пауза після прокрутки для завершення
-   * завантаження зображень.
+   * Після прокрутки даємо браузеру додатковий час
+   * на обробку srcset, data-src і lazy loading.
    */
-  await page.waitForTimeout(1000);
+  await page.waitForTimeout(1500);
 
-  const imagesInfo = await page.locator("img").evaluateAll((images) => {
-    const result: ImageInfo[] = [];
-
-    for (const image of images) {
-      const img = image as HTMLImageElement;
-
-      const src =
-        img.currentSrc ||
-        img.getAttribute("src") ||
-        img.getAttribute("data-src") ||
-        "";
-
-      if (!src) {
-        continue;
-      }
-
-      /*
-       * Ці джерела не варто рахувати як звичайні
-       * мережеві зображення.
-       */
-      if (
-        src.startsWith("data:") ||
-        src.startsWith("blob:") ||
-        src.includes("cdninstagram.com")
-      ) {
-        continue;
-      }
-
-      const styles = window.getComputedStyle(img);
-      const rect = img.getBoundingClientRect();
-
-      const isVisible =
-        styles.display !== "none" &&
-        styles.visibility !== "hidden" &&
-        Number(styles.opacity) !== 0 &&
-        rect.width > 1 &&
-        rect.height > 1;
-
-      /*
-       * Зображення вважається підтверджено битим лише тоді,
-       * коли браузер завершив завантаження, але naturalWidth
-       * залишився нульовим, і саме зображення видиме.
-       */
-      const isBroken =
-        isVisible &&
-        img.complete &&
-        img.naturalWidth === 0;
-
-      result.push({
-        src,
-        isBroken,
-      });
-    }
-
-    return result;
-  });
-
-  const brokenImages = normalizeAndDeduplicateImages(
-    imagesInfo
-      .filter((image) => image.isBroken)
-      .map((image) => image.src)
+  const candidates = await collectBrokenImageCandidates(
+    page
   );
+
+  const uniqueCandidates =
+    normalizeAndDeduplicateImages(
+      candidates.map((candidate) => candidate.src)
+    );
+
+  const checkedImages =
+    await checkImagesInBatches(
+      page,
+      uniqueCandidates,
+      IMAGE_CHECK_CONCURRENCY
+    );
+
+  const brokenImages = checkedImages
+    .filter((image) => image.isConfirmedBroken)
+    .map((image) => image.src);
 
   return {
     brokenImagesCount: brokenImages.length,
@@ -94,56 +64,314 @@ export async function checkBrokenImages(
   };
 }
 
-async function autoScrollPage(page: Page): Promise<void> {
+async function collectBrokenImageCandidates(
+  page: Page
+): Promise<ImageCandidate[]> {
+  return page.locator("img").evaluateAll((images) => {
+    const candidates: ImageCandidate[] = [];
+
+    for (const image of images) {
+      const img = image as HTMLImageElement;
+
+      const rawSource =
+        img.currentSrc ||
+        img.getAttribute("src") ||
+        img.getAttribute("data-src") ||
+        img.getAttribute("data-lazy-src") ||
+        "";
+
+      const src = rawSource.trim();
+
+      if (!src) {
+        continue;
+      }
+
+      if (isIgnoredSourceInsideBrowser(src)) {
+        continue;
+      }
+
+      const styles = window.getComputedStyle(img);
+      const rect = img.getBoundingClientRect();
+
+      const parentIsHidden = hasHiddenParent(img);
+
+      const isRendered =
+        !parentIsHidden &&
+        styles.display !== "none" &&
+        styles.visibility !== "hidden" &&
+        Number(styles.opacity) > 0 &&
+        rect.width > 2 &&
+        rect.height > 2;
+
+      if (!isRendered) {
+        continue;
+      }
+
+      /*
+       * Дрібні службові пікселі, trackers та placeholders
+       * не мають цінності для нашого аудиту.
+       */
+      if (
+        rect.width <= 5 ||
+        rect.height <= 5
+      ) {
+        continue;
+      }
+
+      /*
+       * Якщо картинка ще не завершила завантаження,
+       * ми не маємо права називати її битою.
+       */
+      if (!img.complete) {
+        continue;
+      }
+
+      /*
+       * naturalWidth === 0 — лише підозра.
+       * Остаточно підтвердимо її HTTP-запитом.
+       */
+      if (img.naturalWidth !== 0) {
+        continue;
+      }
+
+      try {
+        const absoluteUrl = new URL(
+          src,
+          window.location.href
+        ).toString();
+
+        candidates.push({
+          src: absoluteUrl,
+        });
+      } catch {
+        /*
+         * Некоректний або нестандартний src не перевіряємо.
+         */
+        continue;
+      }
+    }
+
+    return candidates;
+
+    function hasHiddenParent(
+      element: HTMLElement
+    ): boolean {
+      let current: HTMLElement | null = element;
+
+      while (current) {
+        const currentStyles =
+          window.getComputedStyle(current);
+
+        if (
+          currentStyles.display === "none" ||
+          currentStyles.visibility === "hidden" ||
+          Number(currentStyles.opacity) === 0
+        ) {
+          return true;
+        }
+
+        current = current.parentElement;
+      }
+
+      return false;
+    }
+
+    function isIgnoredSourceInsideBrowser(
+      source: string
+    ): boolean {
+      const normalizedSource =
+        source.toLowerCase();
+
+      return (
+        normalizedSource.startsWith("data:") ||
+        normalizedSource.startsWith("blob:") ||
+        normalizedSource.startsWith("javascript:") ||
+        normalizedSource.includes(
+          "cdninstagram.com"
+        ) ||
+        normalizedSource.includes(
+          "facebook.com/tr"
+        ) ||
+        normalizedSource.includes(
+          "google-analytics.com"
+        )
+      );
+    }
+  });
+}
+
+async function checkImagesInBatches(
+  page: Page,
+  sources: string[],
+  concurrency: number
+): Promise<ImageCheckResult[]> {
+  const results: ImageCheckResult[] = [];
+
+  for (
+    let index = 0;
+    index < sources.length;
+    index += concurrency
+  ) {
+    const batch = sources.slice(
+      index,
+      index + concurrency
+    );
+
+    const batchResults = await Promise.all(
+      batch.map((src) =>
+        checkSingleImage(page, src)
+      )
+    );
+
+    results.push(...batchResults);
+
+    /*
+     * Невелика пауза знижує ризик rate limit
+     * та блокування з боку CDN або Wordfence.
+     */
+    if (index + concurrency < sources.length) {
+      await page.waitForTimeout(250);
+    }
+  }
+
+  return results;
+}
+
+async function checkSingleImage(
+  page: Page,
+  src: string
+): Promise<ImageCheckResult> {
+  try {
+    const response = await page.request.get(src, {
+      timeout: IMAGE_REQUEST_TIMEOUT_MS,
+      failOnStatusCode: false,
+    });
+
+    return classifyImageResponse(
+      src,
+      response
+    );
+  } catch {
+    /*
+     * Timeout або network error не доводить,
+     * що зображення справді видалене.
+     */
+    return {
+      src,
+      status: null,
+      isConfirmedBroken: false,
+    };
+  }
+}
+
+function classifyImageResponse(
+  src: string,
+  response: APIResponse
+): ImageCheckResult {
+  const status = response.status();
+
+  return {
+    src,
+    status,
+    isConfirmedBroken:
+      CONFIRMED_BROKEN_STATUSES.has(status),
+  };
+}
+
+async function autoScrollPage(
+  page: Page
+): Promise<void> {
   await page.evaluate(async () => {
-    const scrollStep = 700;
-    const delayMs = 120;
-    const maxSteps = 30;
+    const scrollStep = 600;
+    const delayMs = 180;
+    const maxSteps = 40;
 
-    for (let step = 0; step < maxSteps; step += 1) {
-      const currentBottom = window.scrollY + window.innerHeight;
-
+    for (
+      let step = 0;
+      step < maxSteps;
+      step += 1
+    ) {
       const documentHeight = Math.max(
         document.body.scrollHeight,
         document.documentElement.scrollHeight
       );
 
+      const currentBottom =
+        window.scrollY + window.innerHeight;
+
       if (currentBottom >= documentHeight) {
         break;
       }
 
-      window.scrollBy(0, scrollStep);
+      window.scrollBy({
+        top: scrollStep,
+        behavior: "instant",
+      });
 
       await new Promise<void>((resolve) => {
         window.setTimeout(resolve, delayMs);
       });
     }
 
-    window.scrollTo(0, 0);
+    /*
+     * На мить залишаємося внизу, оскільки деякі
+     * lazy-load плагіни запускаються із затримкою.
+     */
+    await new Promise<void>((resolve) => {
+      window.setTimeout(resolve, 400);
+    });
+
+    window.scrollTo({
+      top: 0,
+      behavior: "instant",
+    });
   });
 }
 
-function normalizeAndDeduplicateImages(sources: string[]): string[] {
+function normalizeAndDeduplicateImages(
+  sources: string[]
+): string[] {
   const normalizedSources: string[] = [];
 
-  for (const originalSrc of sources) {
-    let normalizedSrc = originalSrc;
+  for (const originalSource of sources) {
+    const normalizedSource =
+      normalizeImageSource(originalSource);
 
-    /*
-     * Wix створює різні URL для різних розмірів
-     * одного й того самого зображення.
-     */
-    if (originalSrc.includes("static.wixstatic.com/media/")) {
-      const parts = originalSrc.split("/");
-      const mediaIndex = parts.findIndex((part) => part === "media");
-
-      if (mediaIndex !== -1 && parts[mediaIndex + 1]) {
-        normalizedSrc = `wix:${parts[mediaIndex + 1]}`;
-      }
+    if (!normalizedSource) {
+      continue;
     }
 
-    normalizedSources.push(normalizedSrc);
+    normalizedSources.push(
+      normalizedSource
+    );
   }
 
-  return Array.from(new Set(normalizedSources));
+  return Array.from(
+    new Set(normalizedSources)
+  );
+}
+
+function normalizeImageSource(
+  source: string
+): string {
+  const trimmedSource = source.trim();
+
+  if (!trimmedSource) {
+    return "";
+  }
+
+  /*
+   * Wix генерує багато URL різних розмірів для одного
+   * зображення. Для HTTP-перевірки краще залишити
+   * реальний URL, але прибрати hash.
+   */
+  try {
+    const url = new URL(trimmedSource);
+
+    url.hash = "";
+
+    return url.toString();
+  } catch {
+    return trimmedSource;
+  }
 }
