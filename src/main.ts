@@ -1,28 +1,14 @@
 import { appConfig } from "./config/app.config.js";
 
-import {
-  readSitesFromCsv,
-} from "./infrastructure/csv/site-csv-reader.js";
+import { readSitesFromCsv } from "./infrastructure/csv/site-csv-reader.js";
+import { writeScanResultsToCsv } from "./infrastructure/csv/scan-result-csv-writer.js";
+import { writeHtmlReport } from "./infrastructure/report/html-report-writer.js";
+import { writeContactAudits } from "./infrastructure/report/contact-audit-writer.js";
 
-import {
-  writeScanResultsToCsv,
-} from "./infrastructure/csv/scan-result-csv-writer.js";
+import { BrowserService } from "./infrastructure/browser/browser.service.js";
+import { ScannerService } from "./core/scanner/scanner.service.js";
 
-import {
-  writeHtmlReport,
-} from "./infrastructure/report/html-report-writer.js";
-
-import {
-  BrowserService,
-} from "./infrastructure/browser/browser.service.js";
-
-import {
-  ScannerService,
-} from "./core/scanner/scanner.service.js";
-
-import type {
-  ScanResult,
-} from "./core/types/scan-result.types.js";
+import type { ScanResult } from "./core/types/scan-result.types.js";
 
 async function main(): Promise<void> {
   const startedAt = Date.now();
@@ -73,9 +59,7 @@ async function main(): Promise<void> {
           outreachRecommendation: "SKIP",
           outreachReasons: [],
 
-          hasHttps: site.url.startsWith(
-            "https://"
-          ),
+          hasHttps: site.url.startsWith("https://"),
 
           title: "",
           titleLength: 0,
@@ -156,6 +140,11 @@ async function main(): Promise<void> {
     results
   );
 
+  const auditsCreated = await writeContactAudits(
+    appConfig.auditsDir,
+    results
+  );
+
   const failedCount = results.filter(
     (result) => result.error !== null
   ).length;
@@ -179,6 +168,14 @@ async function main(): Promise<void> {
 
   console.log(
     `HTML report saved to ${appConfig.reportPath}`
+  );
+
+  console.log(
+    `Contact audits created: ${auditsCreated}`
+  );
+
+  console.log(
+    `Audits saved to ${appConfig.auditsDir}`
   );
 }
 
